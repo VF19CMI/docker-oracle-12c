@@ -16,4 +16,4 @@ EXPOSE 8080
 VOLUME ["/docker-entrypoint-initdb.d"]
 
 CMD ["/entrypoint.sh"]
-CMD [""]
+ENTRYPOINT ["/entrypoint.sh"]
