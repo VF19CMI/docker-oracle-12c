@@ -81,56 +81,13 @@ case "$1" in
 			su oracle -c "/u01/app/oracle/product/12.1.0/xe/bin/tnslsnr &"
 			#create DB for SID: xe
 			su oracle -c "$ORACLE_HOME/bin/dbca -silent -createDatabase -templateName General_Purpose.dbc -gdbname xe -sid xe -responseFile NO_VALUE $CHARSET_INIT -totalMemory $DBCA_TOTAL_MEMORY -emConfiguration LOCAL -pdbAdminPassword oracle -sysPassword oracle -systemPassword oracle"
-			
-			echo "Configuring Apex console"
-			cd $ORACLE_HOME/apex
-			su oracle -c 'echo -e "0Racle$\n8080" | $ORACLE_HOME/bin/sqlplus -S / as sysdba @apxconf > /dev/null'
-			su oracle -c 'echo -e "${ORACLE_HOME}\n\n" | $ORACLE_HOME/bin/sqlplus -S / as sysdba @apex_epg_config_core.sql > /dev/null'
-			su oracle -c 'echo -e "ALTER USER ANONYMOUS ACCOUNT UNLOCK;" | $ORACLE_HOME/bin/sqlplus -S / as sysdba > /dev/null'
-			echo "Database initialized. Please visit http://#containeer:8080/em http://#containeer:8080/apex for extra configuration if needed"
-		fi
-
-		if [ $WEB_CONSOLE == "true" ]; then
-			echo 'Starting web management console'
-			su oracle -c 'echo EXEC DBMS_XDB.sethttpport\(8080\)\; | $ORACLE_HOME/bin/sqlplus -S / as sysdba'
-		else
-			echo 'Disabling web management console'
-			su oracle -c 'echo EXEC DBMS_XDB.sethttpport\(0\)\; | $ORACLE_HOME/bin/sqlplus -S / as sysdba'
-		fi
-
-		if [ $IMPORT_FROM_VOLUME ]; then
-			echo "Starting import from '/docker-entrypoint-initdb.d':"
-
-			for f in $(ls /docker-entrypoint-initdb.d/*); do
-				echo "found file $f"
-				case "$f" in
-					*.sh)     echo "[IMPORT] $0: running $f"; . "$f" ;;
-					*.sql)    echo "[IMPORT] $0: running $f"; echo "exit" | su oracle -c "$CHARSET_MOD $ORACLE_HOME/bin/sqlplus -S / as sysdba @$f"; echo ;;
-					*.dmp)    echo "[IMPORT] $0: running $f"; impdp $f ;;
-					*)        echo "[IMPORT] $0: ignoring $f" ;;
-				esac
-				echo
-			done
-
-			echo "Import finished"
-			echo
-		else
-			echo "[IMPORT] Not a first start, SKIPPING Import from Volume '/docker-entrypoint-initdb.d'"
-			echo "[IMPORT] If you want to enable import at any state - add 'IMPORT_FROM_VOLUME=true' variable"
-			echo
-		fi
 
 		echo "Database ready to use. Enjoy! ;)"
 
 		##
 		## Workaround for graceful shutdown.
 		##
-		while [ "$END" == '' ]; do
-			sleep 1
-			trap "su oracle -c 'echo shutdown immediate\; | $ORACLE_HOME/bin/sqlplus -S / as sysdba'" INT TERM
-		done
 		;;
-
 	*)
 		echo "Database is not configured. Please run '/entrypoint.sh' if needed."
 		exec "$@"
