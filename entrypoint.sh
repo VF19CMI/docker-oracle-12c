@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "XE:$ORACLE_HOME:N" >> /etc/oratab
 chown oracle:dba /etc/oratab
 chmod 664 /etc/oratab
